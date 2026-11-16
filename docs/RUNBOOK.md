@@ -42,6 +42,8 @@ docker compose up -d --build
 | POST | `/api/schemas/import` | 采信样例文件，返回快照摘要与诊断 |
 | GET | `/api/schemas/quarantine` | 隔离区 JSON |
 | GET | `/api/schemas/quarantine.csv` | 隔离区 CSV |
+| POST | `/api/schemas/retract` | 按来源摘要与行号撤回隔离行原文，返回凭据 |
+| GET | `/api/schemas/retractions` | 撤回凭据列表（无原文） |
 | GET | `/api/types` | 类型格与别名表 |
 | POST | `/api/types/compare` | 两个类型写法比较 |
 | POST | `/api/compat` | 一对版本的两向判定 |
@@ -64,6 +66,7 @@ docker compose up -d --build
 | 400 `WINDOW_INVERTED` | 生效区间起点不早于终点 | 检查 `effective_from` / `effective_to` |
 | 400 `BAD_INPUT` | 文件名、参数或 JSON 结构不对 | 看返回的 `detail` |
 | 404 `NOT_FOUND` | 还没跑过批次 | 先在 `/batches` 点「跑一次」 |
+| 404 `NOT_FOUND` | 撤回目标的来源与行号没有原文 | 确认 `source_sha256` 与 `line` 来自隔离区行 |
 
 ## 7 端口与并发
 

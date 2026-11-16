@@ -65,7 +65,7 @@
   <div class="wrap-scroll">
     <table>
       <thead>
-        <tr><th>行</th><th>表</th><th>列</th><th>原因</th><th>阻断</th><th>明细</th></tr>
+        <tr><th>行</th><th>表</th><th>列</th><th>原因</th><th>阻断</th><th>明细</th><th>原文</th><th>操作</th></tr>
       </thead>
       <tbody>
         {% for item in quarantine %}
@@ -76,6 +76,19 @@
           <td class="reason"><span class="code">{{ item.reason|reason }}</span></td>
           <td>{% if item.blocking %}<span class="st st-bad">是</span>{% else %}<span class="st st-warn">否</span>{% endif %}</td>
           <td class="truncate" title="{{ item.detail }}">{{ item.detail or '—' }}</td>
+          <td>
+            {% if item.retracted %}<span class="st st-warn">{{ 'RAW_RETRACTED'|reason }}</span>
+            {% elif item.raw %}<span class="st st-ok">在库</span>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if item.retracted %}
+            <span class="mono" title="撤回凭据">{{ item.retraction_id }}</span>
+            {% elif item.raw and item.source_sha256 %}
+            <button type="button" data-action="retract"
+                    data-source="{{ item.source_sha256 }}" data-line="{{ item.line }}">撤回原文</button>
+            {% else %}—{% endif %}
+          </td>
         </tr>
         {% endfor %}
       </tbody>
@@ -86,10 +99,42 @@
   {% endif %}
 </section>
 
+<section class="doc-section panel" id="retractions">
+  <h2><span class="clause">3</span>撤回凭据</h2>
+  <p class="lede">凭据只记原因与原文摘要，不含原文本身。</p>
+  {% if retractions %}
+  <div class="wrap-scroll">
+    <table>
+      <thead>
+        <tr><th>凭据</th><th>来源摘要</th><th>行</th><th>原因</th><th>原文摘要</th><th>清理范围</th><th>时间</th></tr>
+      </thead>
+      <tbody>
+        {% for item in retractions %}
+        <tr>
+          <td class="mono">{{ item.retraction_id }}</td>
+          <td class="mono" title="{{ item.source_sha256 }}">{{ item.source_sha256[:12] }}…</td>
+          <td class="num">{{ item.line }}</td>
+          <td class="reason">
+            {% for code in item.reasons %}<span class="code">{{ code|reason }}</span>{% if not loop.last %}、{% endif %}{% endfor %}
+          </td>
+          <td class="mono" title="{{ item.raw_sha256|join(', ') }}">{{ item.raw_sha256|length }} 份</td>
+          <td class="num">隔离 {{ item.hits.quarantine or 0 }}　快照 {{ item.hits.snapshots or 0 }}　批次 {{ item.hits.runs or 0 }}</td>
+          <td>{{ item.created_at|ts }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="empty">还没有撤回凭据。</p>
+  {% endif %}
+</section>
+
 <aside class="notes">
   <ol class="footnotes">
     <li id="fn1">按 field_id 对齐，改名不算新字段。<a class="back" href="#main">↩</a></li>
     <li id="fn2">阻断行不进判定，提示行照常参算。<a class="back" href="#main">↩</a></li>
+    <li id="fn3">撤回只清原文，诊断与采信账保留，凭据不含原文。<a class="back" href="#main">↩</a></li>
   </ol>
 </aside>
 {% endblock %}

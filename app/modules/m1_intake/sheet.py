@@ -235,10 +235,14 @@ def fold_columns(columns: list[dict], version_label: str, source: str) -> dict:
 
 
 def diagnostic_csv(rows: list[dict]) -> str:
-    """隔离区导出：行号、表、列、原因码、是否阻断、原值。"""
+    """隔离区导出：行号、表、列、原因码、是否阻断、原值与撤回标记。
+
+    撤回过的行原文在存储层已清空，导出只补凭据号，边界与库内一致。
+    """
     buffer = io.StringIO()
     writer = csv.writer(buffer, lineterminator="\n")
-    writer.writerow(["line", "table", "column", "reason", "blocking", "detail", "raw"])
+    writer.writerow(["line", "table", "column", "reason", "blocking", "detail", "raw",
+                     "retracted", "retraction_id"])
     for row in rows:
         writer.writerow([
             row.get("line", 0),
@@ -248,5 +252,7 @@ def diagnostic_csv(rows: list[dict]) -> str:
             "Y" if row.get("blocking") else "N",
             row.get("detail", ""),
             row.get("raw", ""),
+            "Y" if row.get("retracted") else "N",
+            row.get("retraction_id") or "",
         ])
     return buffer.getvalue()

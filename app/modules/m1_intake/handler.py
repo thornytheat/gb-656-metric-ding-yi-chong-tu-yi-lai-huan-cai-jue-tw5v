@@ -1,4 +1,4 @@
-"""M1 入口：规格单首页、采信接口、隔离区导出。"""
+"""M1 入口：规格单首页、采信接口、原文撤回与隔离区导出。"""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, Response
 
 from app import errors, store, web
-from app.modules.m1_intake import service, sheet
+from app.modules.m1_intake import retraction, service, sheet
 
 router = APIRouter()
 
@@ -16,7 +16,7 @@ def index(request: Request):
     run = store.latest_run()
     rows = (run or {}).get("diff") or []
     ledger = (run or {}).get("ledger") or {}
-    quarantine = (run or {}).get("quarantine") or []
+    quarantine = service.quarantine_of(None)
     blocked = sum(1 for row in quarantine if row["blocking"])
     return web.page_or_404(
         request,
@@ -28,6 +28,7 @@ def index(request: Request):
         quarantine=quarantine,
         blocked=blocked,
         warnings=len(quarantine) - blocked,
+        retractions=retraction.credentials(),
     )
 
 
@@ -44,6 +45,18 @@ def import_schemas(payload: dict | None = None):
         "imported": [service.snapshot_summary(item) for item in snapshots],
         "diagnostics": [row for item in snapshots for row in item["diagnostics"]],
     }
+
+
+@router.post("/api/schemas/retract")
+def retract_raw(payload: dict | None = None):
+    body = payload or {}
+    return retraction.retract(body.get("source_sha256"), body.get("line"))
+
+
+@router.get("/api/schemas/retractions")
+def retractions(source_sha256: str | None = None):
+    rows = retraction.credentials(source_sha256)
+    return {"total": len(rows), "rows": rows}
 
 
 @router.get("/api/schemas/quarantine")

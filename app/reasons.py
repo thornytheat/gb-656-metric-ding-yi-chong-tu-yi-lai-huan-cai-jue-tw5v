@@ -19,6 +19,7 @@ CODES: dict[str, tuple[str, str]] = {
     "EMPTY_INPUT": ("没有列定义", "warn"),
     "TABLE_UNPARSED": ("建表语句无法解析", "break"),
     "REQUIRED_TOKEN_UNKNOWN": ("必填记号无法识别", "warn"),
+    "RAW_RETRACTED": ("敏感原文已撤回", "info"),
     # 类型格
     "TYPE_SAME": ("类型未变", "info"),
     "TYPE_WIDEN": ("类型放宽", "info"),

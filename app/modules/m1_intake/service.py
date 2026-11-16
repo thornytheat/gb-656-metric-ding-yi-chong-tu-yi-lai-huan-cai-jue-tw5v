@@ -6,7 +6,7 @@ import hashlib
 import json
 
 from app import config, store
-from app.modules.m1_intake import ddl, reader, sheet
+from app.modules.m1_intake import ddl, reader, retraction, sheet
 
 
 def _schema_id(version_label: str, fields: list[dict]) -> str:
@@ -111,18 +111,20 @@ def ingest(rel_name: str) -> dict:
         "field_count": len(fields),
         "blocked_count": stats["blocked"],
     }
-    store.save_snapshot(snapshot)
-    store.save_quarantine(snapshot["schema_id"], diagnostics)
-    return snapshot
+    return store.save_intake(snapshot)
 
 
 def quarantine_of(schema_id: str | None) -> list[dict]:
+    """隔离行带上来源摘要：撤回按（来源内容, 行号）定位，两头都要给全。"""
     if schema_id:
-        return store.list_quarantine(schema_id)
+        rows = store.list_quarantine(schema_id)
+        snapshot = store.load_snapshot(schema_id)
+        source = (snapshot or {}).get("source_sha256") or ""
+        return [dict(row, source_sha256=source) for row in rows]
     run = store.latest_run()
     if not run:
         return []
-    return run.get("quarantine") or []
+    return retraction.enrich_rows(run.get("quarantine") or [], run.get("digests") or {})
 
 
 def snapshot_summary(snapshot: dict) -> dict:

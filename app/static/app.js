@@ -17,6 +17,18 @@ const ACTIONS = {
       : `新批次 ${run.run_id} 序号 ${run.version_seq}`;
   },
 
+  async retract(button) {
+    const result = await request('/api/schemas/retract', {
+      source_sha256: button.dataset.source,
+      line: Number(button.dataset.line),
+    });
+    const credential = result.retraction || {};
+    setTimeout(() => window.location.reload(), 400);
+    return result.reused
+      ? `凭据已存在 ${credential.retraction_id}`
+      : `已撤回，凭据 ${credential.retraction_id}`;
+  },
+
   async 'compare-types'() {
     const oldValue = document.getElementById('old-type');
     const newValue = document.getElementById('new-type');
